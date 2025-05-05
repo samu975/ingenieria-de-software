@@ -2,38 +2,34 @@
 import Backandlogout from '@/app/components/backandlogout'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FaEdit, FaTrash } from 'react-icons/fa'
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 
-interface Registro {
+interface Pago {
   _id: string
   placa: string
-  fechaEntrada: string
-  horaEntrada: string
+  monto: number
+  fechaPago: string
+  metodoPago: string
   estado: string
-  createdAt: string
-  updatedAt: string
+  observaciones?: string
 }
 
-const EntradaSalidas = () => {
+const GestionarPagos = () => {
   const router = useRouter()
-  const [registros, setRegistros] = useState<Registro[]>([])
+  const [pagos, setPagos] = useState<Pago[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const handleRecirectToRegistrar = () => {
-    router.push('/main/parqueo/entrada-salidas/registrar')
-  }
-
-  const fetchRegistros = async () => {
+  const fetchPagos = async () => {
     try {
-      const response = await fetch('/api/parqueo/registros')
+      const response = await fetch('/api/parqueo/pagos')
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.error || 'Error al cargar los registros')
+        throw new Error(data.error || 'Error al cargar los pagos')
       }
       
-      setRegistros(data.registros)
+      setPagos(data.pagos)
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -42,45 +38,31 @@ const EntradaSalidas = () => {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) return
+    if (!confirm('¿Estás seguro de que deseas eliminar este pago?')) return
 
     try {
-      const response = await fetch(`/api/parqueo/registros/${id}`, {
+      const response = await fetch(`/api/parqueo/pagos/${id}`, {
         method: 'DELETE'
       })
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al eliminar el registro')
+        throw new Error(data.error || 'Error al eliminar el pago')
       }
 
-      // Actualizar la lista de registros
-      fetchRegistros()
+      fetchPagos()
     } catch (error: any) {
       alert(error.message)
     }
   }
 
   useEffect(() => {
-    fetchRegistros()
+    fetchPagos()
   }, [])
 
-  const formatDate = (dateString: string, horaString: string) => {
-    if (!dateString || !horaString) return ''
-    
-    // Combinar fecha y hora
-    const [year, month, day] = dateString.split('T')[0].split('-')
-    const [hours, minutes] = horaString.split(':')
-    
-    // Crear fecha local
-    const date = new Date(
-      parseInt(year),
-      parseInt(month) - 1, // Los meses en JS son 0-based
-      parseInt(day),
-      parseInt(hours),
-      parseInt(minutes)
-    )
-    
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -90,18 +72,25 @@ const EntradaSalidas = () => {
     })
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP'
+    }).format(amount)
+  }
+
   return (
     <div className='flex flex-col items-center justify-center h-auto px-10 py-20'>
       <Backandlogout />
       
       <div className='w-full max-w-4xl'>
         <div className='flex justify-between items-center mb-6'>
-          <h1 className='text-2xl font-bold'>Registros de Entradas y Salidas</h1>
+          <h1 className='text-2xl font-bold'>Gestión de Pagos</h1>
           <button 
-            onClick={handleRecirectToRegistrar}
-            className='bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition-colors'
+            onClick={() => router.push('/main/parqueo/gestionar-pagos/registrar')}
+            className='bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors flex items-center gap-2'
           >
-            Registrar Entrada/Salida
+            <FaPlus /> Registrar Pago
           </button>
         </div>
 
@@ -110,50 +99,54 @@ const EntradaSalidas = () => {
             <thead>
               <tr className='bg-gray-100'>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Placa</th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Fecha y Hora</th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Tipo</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Monto</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Fecha</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Método</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Estado</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Acciones</th>
               </tr>
             </thead>
             <tbody className='divide-y divide-gray-200'>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className='px-6 py-4 text-center'>Cargando...</td>
+                  <td colSpan={6} className='px-6 py-4 text-center'>Cargando...</td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={4} className='px-6 py-4 text-center text-red-500'>{error}</td>
+                  <td colSpan={6} className='px-6 py-4 text-center text-red-500'>{error}</td>
                 </tr>
-              ) : registros.length === 0 ? (
+              ) : pagos.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className='px-6 py-4 text-center'>No hay registros</td>
+                  <td colSpan={6} className='px-6 py-4 text-center'>No hay pagos registrados</td>
                 </tr>
               ) : (
-                registros.map((registro) => (
-                  <tr key={registro._id} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4 whitespace-nowrap'>{registro.placa}</td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      {formatDate(registro.fechaEntrada, registro.horaEntrada)}
-                    </td>
+                pagos.map((pago) => (
+                  <tr key={pago._id} className='hover:bg-gray-50'>
+                    <td className='px-6 py-4 whitespace-nowrap'>{pago.placa}</td>
+                    <td className='px-6 py-4 whitespace-nowrap'>{formatCurrency(pago.monto)}</td>
+                    <td className='px-6 py-4 whitespace-nowrap'>{formatDate(pago.fechaPago)}</td>
+                    <td className='px-6 py-4 whitespace-nowrap capitalize'>{pago.metodoPago}</td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        registro.estado === 'activo' 
+                        pago.estado === 'completado' 
                           ? 'bg-green-100 text-green-800' 
+                          : pago.estado === 'pendiente'
+                          ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {registro.estado === 'activo' ? 'Entrada' : 'Salida'}
+                        {pago.estado}
                       </span>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <div className='flex items-center space-x-3'>
                         <button 
-                          onClick={() => router.push(`/main/parqueo/entrada-salidas/editar/${registro._id}`)}
+                          onClick={() => router.push(`/main/parqueo/gestionar-pagos/editar/${pago._id}`)}
                           className='text-blue-600 hover:text-blue-800'
                         >
                           <FaEdit className='w-5 h-5' />
                         </button>
                         <button 
-                          onClick={() => handleDelete(registro._id)}
+                          onClick={() => handleDelete(pago._id)}
                           className='text-red-600 hover:text-red-800'
                         >
                           <FaTrash className='w-5 h-5' />
@@ -171,4 +164,4 @@ const EntradaSalidas = () => {
   )
 }
 
-export default EntradaSalidas
+export default GestionarPagos 

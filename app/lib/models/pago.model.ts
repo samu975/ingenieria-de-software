@@ -1,11 +1,34 @@
-import mongoose, { Schema, models, model } from 'mongoose'
+import mongoose from 'mongoose'
 
-const pagoSchema = new Schema({
-  usuario: { type: Schema.Types.ObjectId, ref: 'Usuario', required: true },
-  vehiculo: { type: Schema.Types.ObjectId, ref: 'Vehiculo', required: true },
-  monto: { type: Number, required: true },
-  fechaPago: { type: Date, default: Date.now },
-  concepto: { type: String }
-}, { timestamps: true })
+const pagoSchema = new mongoose.Schema({
+  placa: {
+    type: String,
+    required: true
+  },
+  monto: {
+    type: Number,
+    required: true
+  },
+  fechaPago: {
+    type: Date,
+    required: true
+  },
+  metodoPago: {
+    type: String,
+    required: true,
+    enum: ['efectivo', 'tarjeta', 'transferencia']
+  },
+  estado: {
+    type: String,
+    required: true,
+    enum: ['pendiente', 'completado', 'cancelado'],
+    default: 'pendiente'
+  },
+  observaciones: {
+    type: String
+  }
+}, {
+  timestamps: true
+})
 
-export const Pago = models.Pago || model('Pago', pagoSchema)
+export const Pago = mongoose.models.Pago || mongoose.model('Pago', pagoSchema)

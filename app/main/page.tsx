@@ -20,11 +20,11 @@ const page = () => {
   }
 
   const handleGestionarPagos = () => {
-    router.push('/main/parqueo/pagos')
+    router.push('/main/parqueo/gestionar-pagos')
   }
 
   const handleVerIncidentes = () => {
-    router.push('/main/parqueo/incidentes')
+    router.push('/main/parqueo/gestionar-incidentes')
   }
 
   return (
