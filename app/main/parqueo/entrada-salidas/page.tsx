@@ -2,6 +2,7 @@
 import Backandlogout from '@/app/components/backandlogout'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 
 interface Registro {
   _id: string
@@ -28,8 +29,6 @@ const EntradaSalidas = () => {
       const response = await fetch('/api/parqueo/registros')
       const data = await response.json()
       
-      console.log(data)
-      
       if (!response.ok) {
         throw new Error(data.error || 'Error al cargar los registros')
       }
@@ -42,14 +41,46 @@ const EntradaSalidas = () => {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) return
+
+    try {
+      const response = await fetch(`/api/parqueo/registros/${id}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al eliminar el registro')
+      }
+
+      // Actualizar la lista de registros
+      fetchRegistros()
+    } catch (error: any) {
+      alert(error.message)
+    }
+  }
+
   useEffect(() => {
     fetchRegistros()
   }, [])
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return ''
+  const formatDate = (dateString: string, horaString: string) => {
+    if (!dateString || !horaString) return ''
+    
+    // Combinar fecha y hora
+    const [year, month, day] = dateString.split('T')[0].split('-')
+    const [hours, minutes] = horaString.split(':')
+    
+    // Crear fecha local
+    const date = new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Los meses en JS son 0-based
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes)
+    )
+    
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -81,27 +112,28 @@ const EntradaSalidas = () => {
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Placa</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Fecha y Hora</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Tipo</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Acciones</th>
               </tr>
             </thead>
             <tbody className='divide-y divide-gray-200'>
               {loading ? (
                 <tr>
-                  <td colSpan={3} className='px-6 py-4 text-center'>Cargando...</td>
+                  <td colSpan={4} className='px-6 py-4 text-center'>Cargando...</td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={3} className='px-6 py-4 text-center text-red-500'>{error}</td>
+                  <td colSpan={4} className='px-6 py-4 text-center text-red-500'>{error}</td>
                 </tr>
               ) : registros.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className='px-6 py-4 text-center'>No hay registros</td>
+                  <td colSpan={4} className='px-6 py-4 text-center'>No hay registros</td>
                 </tr>
               ) : (
                 registros.map((registro) => (
                   <tr key={registro._id} className='hover:bg-gray-50'>
                     <td className='px-6 py-4 whitespace-nowrap'>{registro.placa}</td>
                     <td className='px-6 py-4 whitespace-nowrap'>
-                      {formatDate(registro.fechaEntrada)}
+                      {formatDate(registro.fechaEntrada, registro.horaEntrada)}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -111,6 +143,22 @@ const EntradaSalidas = () => {
                       }`}>
                         {registro.estado === 'activo' ? 'Entrada' : 'Salida'}
                       </span>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='flex items-center space-x-3'>
+                        <button 
+                          onClick={() => router.push(`/main/parqueo/entrada-salidas/editar/${registro._id}`)}
+                          className='text-blue-600 hover:text-blue-800'
+                        >
+                          <FaEdit className='w-5 h-5' />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(registro._id)}
+                          className='text-red-600 hover:text-red-800'
+                        >
+                          <FaTrash className='w-5 h-5' />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
